@@ -1,6 +1,7 @@
 package com.tool.reg.service.impl;
 
 import com.tool.reg.dto.GeneratedPattern;
+import com.tool.reg.exception.*;
 import com.tool.reg.service.FileService;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -12,14 +13,11 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.tika.Tika;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatClient;
 import org.springframework.ai.parser.BeanOutputParser;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,17 +34,17 @@ import java.util.regex.Pattern;
 @Service
 public class FileServiceImpl implements FileService {
 
-    private OpenAiChatClient chatClient;
+    private final OpenAiChatClient chatClient;
 
-    private Tika tika;
+    private final Tika tika;
 
-    public FileServiceImpl(OpenAiChatClient chatClient, Tika tika){
+    public FileServiceImpl(OpenAiChatClient chatClient, Tika tika) {
         this.tika = tika;
         this.chatClient = chatClient;
     }
 
     @Override
-    public OutputStream extractCustomPatternsFromUrl(String url, String cPattern){
+    public OutputStream extractCustomPatternsFromUrl(String url, String cPattern) throws TextExtractionException, MalformedURLException, NoDataException, PdfGenerationException {
 
         String text = extractTextFromURL(url);
 
@@ -56,12 +54,15 @@ public class FileServiceImpl implements FileService {
         while (matcher.find()) {
             matches.add(matcher.group());
         }
+        if(matches.isEmpty()){
+            throw new NoDataException("No email present in provided URL");
+        }
 
         return generatePdf(matches);
     }
 
     @Override
-    public OutputStream extractCustomPatternsFromFile(MultipartFile file, String cPattern) throws Exception {
+    public OutputStream extractCustomPatternsFromFile(MultipartFile file, String cPattern) throws TextExtractionException, InvalidFileException, FileReadingException, IOException, NoDataException, PdfGenerationException {
 
         String text = extractTextFromFile(file);
 
@@ -71,12 +72,14 @@ public class FileServiceImpl implements FileService {
         while (matcher.find()) {
             matches.add(matcher.group());
         }
-
+        if(matches.isEmpty()){
+            throw new NoDataException("No email present in provided URL");
+        }
         return generatePdf(matches);
     }
 
     @Override
-    public OutputStream extractEmailsFromFile(MultipartFile file) throws Exception {
+    public OutputStream extractEmailsFromFile(MultipartFile file) throws TextExtractionException, InvalidFileException, FileReadingException, IOException, NoDataException, PdfGenerationException {
 
         String text = extractTextFromFile(file);
 
@@ -86,12 +89,14 @@ public class FileServiceImpl implements FileService {
         while (matcher.find()) {
             matches.add(matcher.group());
         }
-        System.out.println(String.join(", ", matches));
+        if(matches.isEmpty()){
+            throw new NoDataException("No email present in provided URL");
+        }
         return generatePdf(matches);
     }
 
     @Override
-    public OutputStream extractEmailsFromUrl(String url){
+    public OutputStream extractEmailsFromUrl(String url) throws TextExtractionException, MalformedURLException, NoDataException, PdfGenerationException {
 
         String text = extractTextFromURL(url);
 
@@ -101,18 +106,22 @@ public class FileServiceImpl implements FileService {
         while (matcher.find()) {
             matches.add(matcher.group());
         }
-        System.out.println(String.join(", ", matches));
+
+        if(matches.isEmpty()){
+            throw new NoDataException("No email present in provided URL");
+        }
+
         return generatePdf(matches);
     }
 
     @Override
-    public OutputStream extractViaPromptUrl(String url, String input){
+    public OutputStream extractViaPromptUrl(String url, String input) throws TextExtractionException, MalformedURLException, PdfGenerationException, NoDataException {
         var outputParser = new BeanOutputParser<>(GeneratedPattern.class);
         String message =
                 """
-                Create a regular expression in java language for this - " {input} ".
-                {format}
-                """;
+                        Create a regular expression in java language for this - " {input} ".
+                        {format}
+                        """;
 
         var promptTemplate = new PromptTemplate(message, Map.of("input", input, "format", outputParser.getFormat()));
         Prompt prompt = promptTemplate.create();
@@ -129,9 +138,9 @@ public class FileServiceImpl implements FileService {
         BeanOutputParser<GeneratedPattern> outputParser = new BeanOutputParser<>(GeneratedPattern.class);
         String message =
                 """
-                Create a regular expression in java language for this - " {input} ".
-                {format}
-                """;
+                        Create a regular expression in java language for this - " {input} ".
+                        {format}
+                        """;
 
         var promptTemplate = new PromptTemplate(message, Map.of("input", input, "format", outputParser.getFormat()));
         Prompt prompt = promptTemplate.create();
@@ -141,11 +150,11 @@ public class FileServiceImpl implements FileService {
         return extractCustomPatternsFromFile(file, pattern.getRegexPattern());
     }
 
-    private OutputStream generatePdf(Set<String> extractedData){
+    private OutputStream generatePdf(Set<String> extractedData) throws PdfGenerationException {
 
         ByteArrayOutputStream stream = null;
 
-        try(PDDocument document = new PDDocument();){
+        try (PDDocument document = new PDDocument()) {
             PDPage page = new PDPage();
             document.addPage(page);
             PDPageContentStream contentStream = new PDPageContentStream(document, page);
@@ -156,8 +165,9 @@ public class FileServiceImpl implements FileService {
             extractedData.forEach(text -> {
                 try {
                     contentStream.showText(text);
+                    contentStream.newLineAtOffset(0, -15);
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new UncheckedIOException(e);
                 }
             });
             contentStream.endText();
@@ -165,29 +175,32 @@ public class FileServiceImpl implements FileService {
 
             stream = new ByteArrayOutputStream();
             document.save(stream);
-        }
-        catch (IOException ex){
-            System.out.println(ex);
+        } catch (IOException ex) {
+            throw new PdfGenerationException("Failed to generate PDF", ex);
         }
         return stream;
     }
 
     private boolean validateFile(MultipartFile file) throws IOException {
         String filename = file.getOriginalFilename();
+
+        if(filename==null){
+            return false;
+        }
+
         String fileType = tika.detect(file.getInputStream());
-        boolean check = (
+        return (
                 (filename.endsWith(".pdf") && fileType.equals("application/pdf")) ||
-                        (filename.endsWith(".txt") && fileType.equals("text/plain"))||
+                        (filename.endsWith(".txt") && fileType.equals("text/plain")) ||
                         (filename.endsWith(".docx")) && fileType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         );
-        return check;
     }
 
-    private String extractTextFromFile(MultipartFile file) throws Exception {
+    private String extractTextFromFile(MultipartFile file) throws InvalidFileException, TextExtractionException, NoDataException, FileReadingException, IOException {
 
         boolean validated = this.validateFile(file);
-        if(!validated)
-            throw new Exception("error");
+        if (!validated)
+            throw new InvalidFileException("File is not of valid type");
 
         String result = null;
         String fileName = file.getOriginalFilename();
@@ -202,74 +215,94 @@ public class FileServiceImpl implements FileService {
         return result;
     }
 
-    private String extractTextFromURL(String url){
+    private String extractTextFromURL(String url) throws MalformedURLException, TextExtractionException, NoDataException {
         StringBuilder result = new StringBuilder();
         try {
             URL urlObj = new URL(url);
             URLConnection urlConnection = urlObj.openConnection();
-            var inputStream = new InputStreamReader(urlConnection.getInputStream());
-            var bufferedReader = new BufferedReader(inputStream);
-            String line;
-            while((line = bufferedReader.readLine()) != null){
-                result.append(line);
+            try (
+                    var inputStream = new InputStreamReader(urlConnection.getInputStream());
+                    var bufferedReader = new BufferedReader(inputStream);
+            ) {
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    result.append(line);
+                }
             }
-        } catch(MalformedURLException ex){
-            System.out.println(ex);
-        } catch (IOException ex){
-            System.out.println();
+        } catch (IOException ex) {
+            throw new TextExtractionException("Problem while extracting text from provided URL", ex);
         }
 
-        return result.toString();
+        String resultStr = result.toString();
+
+        if (resultStr.trim().isEmpty()) {
+            throw new NoDataException("Provided URL has no text");
+        }
+
+        return resultStr;
     }
 
-    private String extractTextWordDocx(MultipartFile file){
+    private String extractTextWordDocx(MultipartFile file) throws TextExtractionException, NoDataException {
         String text = null;
         try (var inputStream = file.getInputStream();
              var document = new XWPFDocument(inputStream);
-             var extractor = new XWPFWordExtractor(document);){
+             var extractor = new XWPFWordExtractor(document);) {
 
             text = extractor.getText();
-        } catch (IOException ex){
-            System.out.println("Some error occured");
+        } catch (IOException ex) {
+            throw new TextExtractionException("Error extracting text from Word File", ex);
+        }
+
+        if (text == null || text.trim().isEmpty()) {
+            throw new NoDataException("The word file has no words");
         }
 
         return text;
     }
 
-    private String extractTextTxt(MultipartFile file){
+    private String extractTextTxt(MultipartFile file) throws TextExtractionException, NoDataException {
 
         StringBuilder result = new StringBuilder();
 
-        try(var inputStream = file.getInputStream();
-            var inputStreamReader = new InputStreamReader(inputStream);
-            var reader= new BufferedReader(inputStreamReader)){
+        try (var inputStream = file.getInputStream();
+             var inputStreamReader = new InputStreamReader(inputStream);
+             var reader = new BufferedReader(inputStreamReader)) {
 
             String line;
-            while((line = reader.readLine()) != null){
+            while ((line = reader.readLine()) != null) {
                 result.append(line);
             }
 
-        } catch (IOException ex){
-            System.out.println("error in reading file");
+        } catch (IOException ex) {
+            throw new TextExtractionException("Error while extracting text fro TXT file", ex);
         }
 
-        return result.toString();
+        String resultStr = result.toString();
+
+        if (resultStr.trim().isEmpty()) {
+            throw new NoDataException("Provided TXT file has no text to extract");
+        }
+
+        return resultStr;
     }
 
-    private String extractTextPdf(MultipartFile file){
+    private String extractTextPdf(MultipartFile file) throws TextExtractionException, FileReadingException, NoDataException {
         byte[] bytes = null;
         String text = null;
-        try{
+        try {
             bytes = file.getBytes();
+        } catch (IOException ex) {
+            throw new FileReadingException("Failed to read bytes from PDF", ex);
         }
-        catch (IOException ex){
-            System.out.println("can't get byte stream");
-        }
-        try(PDDocument document = Loader.loadPDF(bytes)){
+        try (PDDocument document = Loader.loadPDF(bytes)) {
             var stripper = new PDFTextStripper();
             text = stripper.getText(document);
-        } catch (IOException ex){
-            System.out.println("error while reading file");
+        } catch (IOException ex) {
+            throw new TextExtractionException("Error extracting text from PDF", ex);
+        }
+
+        if (text == null || text.trim().isEmpty()) {
+            throw new NoDataException("Provided PDF has no text to extract");
         }
 
         return text;
