@@ -100,7 +100,7 @@ public class MainController {
     }
 
     @PostMapping("/file/custom")
-    ResponseEntity<byte[]> handleFileCustomPatternExtract(@RequestBody MultipartFile file ,@RequestBody String pattern){
+    ResponseEntity<byte[]> handleFileCustomPatternExtract(@RequestParam MultipartFile file ,@RequestParam String pattern){
         try {
             // Call your service method to get the ByteArrayOutputStream
             ByteArrayOutputStream baos = (ByteArrayOutputStream) fileService.extractCustomPatternsFromFile(file, pattern);
@@ -151,8 +151,8 @@ public class MainController {
         }
     }
 
-    @PostMapping("/web/abstract/file")
-    ResponseEntity<byte[]> handleFileAbstractText(@RequestBody MultipartFile file, @RequestBody String text){
+    @PostMapping("/file/abstract")
+    ResponseEntity<byte[]> handleFileAbstractText(@RequestParam MultipartFile file, @RequestParam String text){
         try {
             // Call your service method to get the ByteArrayOutputStream
             ByteArrayOutputStream baos = (ByteArrayOutputStream) fileService.extractViaPromptFile(file, text);
