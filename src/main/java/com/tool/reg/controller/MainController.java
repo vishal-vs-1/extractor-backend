@@ -2,6 +2,7 @@ package com.tool.reg.controller;
 
 import com.tool.reg.dto.UrlDto;
 import com.tool.reg.service.FileService;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 
@@ -22,10 +24,10 @@ public class MainController {
     }
 
     @PostMapping("/web/email")
-    ResponseEntity<byte[]> handleUrlEmailExtract(@RequestBody UrlDto dto){
+    ResponseEntity<InputStreamResource> handleUrlEmailExtract(@RequestBody UrlDto dto){
         try {
-            // Call your service method to get the ByteArrayOutputStream
-            ByteArrayOutputStream baos = (ByteArrayOutputStream) fileService.extractEmailsFromUrl(dto.getUrl());
+            // Call your service method to get the inputstreamresource
+            InputStreamResource resource = fileService.extractEmailsFromUrl(dto.getUrl());
 
             // Prepare headers to instruct browser to download the file
             HttpHeaders headers = new HttpHeaders();
@@ -37,7 +39,7 @@ public class MainController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .contentType(MediaType.APPLICATION_PDF)
-                    .body(baos.toByteArray());
+                    .body(resource);
         } catch (Exception e) {
             // Log the exception (adjust based on your logging framework)
             System.out.println("An error occurred: " + e.getMessage());
@@ -48,10 +50,10 @@ public class MainController {
     }
 
     @PostMapping("/web/custom")
-    ResponseEntity<byte[]> handleUrlCustomPatternExtract(@RequestBody UrlDto dto){
+    ResponseEntity<InputStreamResource> handleUrlCustomPatternExtract(@RequestBody UrlDto dto){
         try {
             // Call your service method to get the ByteArrayOutputStream
-            ByteArrayOutputStream baos = (ByteArrayOutputStream) fileService.extractCustomPatternsFromUrl(dto.getUrl(), dto.getInput());
+            InputStreamResource resource =  fileService.extractCustomPatternsFromUrl(dto.getUrl(), dto.getInput());
 
             // Prepare headers to instruct browser to download the file
             HttpHeaders headers = new HttpHeaders();
@@ -63,7 +65,7 @@ public class MainController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .contentType(MediaType.APPLICATION_PDF)
-                    .body(baos.toByteArray());
+                    .body(resource);
         } catch (Exception e) {
             // Log the exception (adjust based on your logging framework)
             System.out.println("An error occurred: " + e.getMessage());
@@ -74,10 +76,10 @@ public class MainController {
     }
 
     @PostMapping("/file/email")
-    ResponseEntity<byte[]> handleFileEmailExtract(@RequestBody MultipartFile file){
+    ResponseEntity<InputStreamResource> handleFileEmailExtract(@RequestBody MultipartFile file){
         try {
             // Call your service method to get the ByteArrayOutputStream
-            ByteArrayOutputStream baos = (ByteArrayOutputStream) fileService.extractEmailsFromFile(file);
+            InputStreamResource resource = fileService.extractEmailsFromFile(file);
 
             // Prepare headers to instruct browser to download the file
             HttpHeaders headers = new HttpHeaders();
@@ -89,7 +91,7 @@ public class MainController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .contentType(MediaType.APPLICATION_PDF)
-                    .body(baos.toByteArray());
+                    .body(resource);
         } catch (Exception e) {
             // Log the exception (adjust based on your logging framework)
             System.out.println("An error occurred: " + e.getMessage());
@@ -100,10 +102,10 @@ public class MainController {
     }
 
     @PostMapping("/file/custom")
-    ResponseEntity<byte[]> handleFileCustomPatternExtract(@RequestParam MultipartFile file ,@RequestParam String pattern){
+    ResponseEntity<InputStreamResource> handleFileCustomPatternExtract(@RequestParam MultipartFile file ,@RequestParam String pattern){
         try {
             // Call your service method to get the ByteArrayOutputStream
-            ByteArrayOutputStream baos = (ByteArrayOutputStream) fileService.extractCustomPatternsFromFile(file, pattern);
+            InputStreamResource resource = fileService.extractCustomPatternsFromFile(file, pattern);
 
             // Prepare headers to instruct browser to download the file
             HttpHeaders headers = new HttpHeaders();
@@ -115,7 +117,7 @@ public class MainController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .contentType(MediaType.APPLICATION_PDF)
-                    .body(baos.toByteArray());
+                    .body(resource);
         } catch (Exception e) {
             // Log the exception (adjust based on your logging framework)
             System.out.println("An error occurred: " + e.getMessage());
@@ -126,10 +128,10 @@ public class MainController {
     }
 
     @PostMapping("/web/abstract")
-    ResponseEntity<byte[]> handleUrlAbstractText(@RequestBody UrlDto dto){
+    ResponseEntity<InputStreamResource> handleUrlAbstractText(@RequestBody UrlDto dto){
         try {
             // Call your service method to get the ByteArrayOutputStream
-            ByteArrayOutputStream baos = (ByteArrayOutputStream) fileService.extractViaPromptUrl(dto.getUrl(), dto.getInput());
+            InputStreamResource resource = fileService.extractViaPromptUrl(dto.getUrl(), dto.getInput());
 
             // Prepare headers to instruct browser to download the file
             HttpHeaders headers = new HttpHeaders();
@@ -141,7 +143,7 @@ public class MainController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .contentType(MediaType.APPLICATION_PDF)
-                    .body(baos.toByteArray());
+                    .body(resource);
         } catch (Exception e) {
             // Log the exception (adjust based on your logging framework)
             System.out.println("An error occurred: " + e.getMessage());
@@ -152,10 +154,10 @@ public class MainController {
     }
 
     @PostMapping("/file/abstract")
-    ResponseEntity<byte[]> handleFileAbstractText(@RequestParam MultipartFile file, @RequestParam String text){
+    ResponseEntity<InputStreamResource> handleFileAbstractText(@RequestParam MultipartFile file, @RequestParam String text){
         try {
             // Call your service method to get the ByteArrayOutputStream
-            ByteArrayOutputStream baos = (ByteArrayOutputStream) fileService.extractViaPromptFile(file, text);
+            InputStreamResource resource = fileService.extractViaPromptFile(file, text);
 
             // Prepare headers to instruct browser to download the file
             HttpHeaders headers = new HttpHeaders();
@@ -167,7 +169,7 @@ public class MainController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .contentType(MediaType.APPLICATION_PDF)
-                    .body(baos.toByteArray());
+                    .body(resource);
         } catch (Exception e) {
             // Log the exception (adjust based on your logging framework)
             System.out.println("An error occurred: " + e.getMessage());

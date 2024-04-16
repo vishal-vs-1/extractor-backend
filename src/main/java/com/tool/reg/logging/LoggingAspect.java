@@ -15,7 +15,6 @@ public class LoggingAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggingAspect.class);
 
-    // Pointcut expression to match methods within service package
     @Before("execution(* com.tool.reg.service.impl.*.*(..))")
     public void logServiceAccess(JoinPoint joinPoint) {
         logger.info("Accessing: " + joinPoint.getSignature().toShortString() + " - Args: " + Arrays.toString(joinPoint.getArgs()));

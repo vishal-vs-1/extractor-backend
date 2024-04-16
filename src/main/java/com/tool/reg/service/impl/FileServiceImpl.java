@@ -18,6 +18,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatClient;
 import org.springframework.ai.parser.BeanOutputParser;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,7 +45,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public OutputStream extractCustomPatternsFromUrl(String url, String cPattern) throws TextExtractionException, MalformedURLException, NoDataException, PdfGenerationException {
+    public InputStreamResource extractCustomPatternsFromUrl(String url, String cPattern) throws TextExtractionException, MalformedURLException, NoDataException, PdfGenerationException {
 
         String text = extractTextFromURL(url);
 
@@ -62,7 +63,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public OutputStream extractCustomPatternsFromFile(MultipartFile file, String cPattern) throws TextExtractionException, InvalidFileException, FileReadingException, IOException, NoDataException, PdfGenerationException {
+    public InputStreamResource extractCustomPatternsFromFile(MultipartFile file, String cPattern) throws TextExtractionException, InvalidFileException, FileReadingException, IOException, NoDataException, PdfGenerationException {
 
         String text = extractTextFromFile(file);
 
@@ -79,7 +80,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public OutputStream extractEmailsFromFile(MultipartFile file) throws TextExtractionException, InvalidFileException, FileReadingException, IOException, NoDataException, PdfGenerationException {
+    public InputStreamResource extractEmailsFromFile(MultipartFile file) throws TextExtractionException, InvalidFileException, FileReadingException, IOException, NoDataException, PdfGenerationException {
 
         String text = extractTextFromFile(file);
 
@@ -96,7 +97,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public OutputStream extractEmailsFromUrl(String url) throws TextExtractionException, MalformedURLException, NoDataException, PdfGenerationException {
+    public InputStreamResource extractEmailsFromUrl(String url) throws TextExtractionException, MalformedURLException, NoDataException, PdfGenerationException {
 
         String text = extractTextFromURL(url);
 
@@ -115,26 +116,25 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public OutputStream extractViaPromptUrl(String url, String input) throws TextExtractionException, MalformedURLException, PdfGenerationException, NoDataException {
-        var outputParser = new BeanOutputParser<>(GeneratedPattern.class);
-        String message =
-                """
-                        Create a regular expression in java language for this - " {input} ".
-                        {format}
-                        """;
+    public InputStreamResource extractViaPromptUrl(String url, String input) throws TextExtractionException, MalformedURLException, PdfGenerationException, NoDataException {
 
-        var promptTemplate = new PromptTemplate(message, Map.of("input", input, "format", outputParser.getFormat()));
-        Prompt prompt = promptTemplate.create();
-        Generation generation = chatClient.call(prompt).getResult();
-        GeneratedPattern pattern = outputParser.parse(generation.getOutput().getContent());
-
-        System.out.println(pattern.getRegexPattern());
-
-        return extractCustomPatternsFromUrl(url, pattern.getRegexPattern());
+        String pattern = createPatternWithPrompt(input);
+        return extractCustomPatternsFromUrl(url, pattern);
     }
 
     @Override
-    public OutputStream extractViaPromptFile(MultipartFile file, String input) throws Exception {
+    public InputStreamResource extractViaPromptFile(MultipartFile file, String input) throws Exception {
+
+        String pattern = createPatternWithPrompt(input);
+
+        return extractCustomPatternsFromFile(file, pattern);
+    }
+
+
+
+
+    //Unstable parser causes problems for some prompts
+    private String createPatternWithPrompt(String input) {
         BeanOutputParser<GeneratedPattern> outputParser = new BeanOutputParser<>(GeneratedPattern.class);
         String message =
                 """
@@ -147,10 +147,10 @@ public class FileServiceImpl implements FileService {
         Generation generation = chatClient.call(prompt).getResult();
         GeneratedPattern pattern = outputParser.parse(generation.getOutput().getContent());
 
-        return extractCustomPatternsFromFile(file, pattern.getRegexPattern());
+        return pattern.getRegexPattern();
     }
 
-    private OutputStream generatePdf(Set<String> extractedData) throws PdfGenerationException {
+    private InputStreamResource generatePdf(Set<String> extractedData) throws PdfGenerationException {
 
         ByteArrayOutputStream stream = null;
 
@@ -178,7 +178,7 @@ public class FileServiceImpl implements FileService {
         } catch (IOException ex) {
             throw new PdfGenerationException("Failed to generate PDF", ex);
         }
-        return stream;
+        return new InputStreamResource(new ByteArrayInputStream(stream.toByteArray()));
     }
 
     private boolean validateFile(MultipartFile file) throws IOException {
