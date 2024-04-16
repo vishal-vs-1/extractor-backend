@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 @ResponseBody
 public class ChatController {
-    private OpenAiChatClient chatClient;
+    private final OpenAiChatClient chatClient;
 
     public ChatController(OpenAiChatClient chatClient) {
         this.chatClient = chatClient;
