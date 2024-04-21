@@ -84,16 +84,7 @@ public class FileServiceImpl implements FileService {
 
         String text = extractTextFromFile(file);
 
-        Set<String> matches = new HashSet<>();
-        Pattern pattern = Pattern.compile("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}\\b");
-        Matcher matcher = pattern.matcher(text);
-        while (matcher.find()) {
-            matches.add(matcher.group());
-        }
-        if(matches.isEmpty()){
-            throw new NoDataException("No email present in provided URL");
-        }
-        return generatePdf(matches);
+        return generatePdf(extractEmail(text));
     }
 
     @Override
@@ -101,18 +92,7 @@ public class FileServiceImpl implements FileService {
 
         String text = extractTextFromURL(url);
 
-        Set<String> matches = new HashSet<>();
-        Pattern pattern = Pattern.compile("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}\\b");
-        Matcher matcher = pattern.matcher(text);
-        while (matcher.find()) {
-            matches.add(matcher.group());
-        }
-
-        if(matches.isEmpty()){
-            throw new NoDataException("No email present in provided URL");
-        }
-
-        return generatePdf(matches);
+        return generatePdf(extractEmail(text));
     }
 
     @Override
@@ -132,6 +112,23 @@ public class FileServiceImpl implements FileService {
 
 
 
+
+    private Set<String> extractEmail(String text) throws NoDataException {
+
+        Set<String> matches = new HashSet<>();
+
+        Pattern pattern = Pattern.compile("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}\\b");
+        Matcher matcher = pattern.matcher(text);
+        while (matcher.find()) {
+            matches.add(matcher.group());
+        }
+
+        if(matches.isEmpty()){
+            throw new NoDataException("No email present in provided URL");
+        }
+
+        return matches;
+    }
 
     //Unstable parser causes problems for some prompts
     private String createPatternWithPrompt(String input) {
