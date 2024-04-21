@@ -135,6 +135,9 @@ public class FileServiceImpl implements FileService {
 
     //Unstable parser causes problems for some prompts
     private String createPatternWithPrompt(String input) {
+
+        String result = null;
+
         BeanOutputParser<GeneratedPattern> outputParser = new BeanOutputParser<>(GeneratedPattern.class);
         String message =
                 """
@@ -145,9 +148,38 @@ public class FileServiceImpl implements FileService {
         var promptTemplate = new PromptTemplate(message, Map.of("input", input, "format", outputParser.getFormat()));
         Prompt prompt = promptTemplate.create();
         Generation generation = chatClient.call(prompt).getResult();
-        GeneratedPattern pattern = outputParser.parse(generation.getOutput().getContent());
+        try {
+            GeneratedPattern pattern = outputParser.parse(generation.getOutput().getContent());
+            result = pattern.getRegexPattern();
+        } catch (Exception ex){
+            result = createPatternWithPromptManual(input);
+        }
 
-        return pattern.getRegexPattern();
+        return result;
+    }
+
+    private String createPatternWithPromptManual(String input){
+        String prompt = """
+                        Create a regular expression in java language for this input = 
+                        %s
+                        
+                        Answer me in this format, regex = "regular expression here"
+                        Don't give any extra details
+                        """;
+
+        prompt = prompt.formatted(input);
+
+        String result = chatClient.call(prompt);
+
+        Pattern pattern = Pattern.compile("\"([^\"]*)\"");
+        Matcher matcher = pattern.matcher(result);
+
+        String extractedRegex = "";
+        if (matcher.find()) {
+            extractedRegex = matcher.group(1);
+        }
+
+        return extractedRegex;
     }
 
     private InputStreamResource generatePdf(Set<String> extractedData) throws PdfGenerationException {
