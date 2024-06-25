@@ -1,6 +1,6 @@
 package com.tool.reg.exception;
 
-public class FileReadingException extends Exception{
+public class FileReadingException extends RuntimeException{
 
     public FileReadingException(String message) {
         super(message);

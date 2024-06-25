@@ -10,10 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-
 @RestController
 public class MainController {
 
@@ -22,6 +18,8 @@ public class MainController {
     MainController(FileService file){
         fileService = file;
     }
+
+    //Endpoints for url handling
 
     @PostMapping("/web/email")
     ResponseEntity<InputStreamResource> handleUrlEmailExtract(@RequestBody UrlDto dto){
@@ -75,6 +73,37 @@ public class MainController {
         }
     }
 
+    @PostMapping("/web/abstract")
+    ResponseEntity<InputStreamResource> handleUrlAbstractText(@RequestBody UrlDto dto){
+        try {
+            // Call your service method to get the ByteArrayOutputStream
+            InputStreamResource resource = fileService.extractViaPromptUrl(dto.getUrl(), dto.getInput());
+
+            // Prepare headers to instruct browser to download the file
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
+            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+            headers.add(HttpHeaders.PRAGMA, "no-cache");
+            headers.add(HttpHeaders.EXPIRES, "0");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(resource);
+        } catch (Exception e) {
+            // Log the exception (adjust based on your logging framework)
+            System.out.println("An error occurred: " + e.getMessage());
+
+            // Return an internal server error response
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    
+
+    //Endpoints for file handling
+
     @PostMapping("/file/email")
     ResponseEntity<InputStreamResource> handleFileEmailExtract(@RequestBody MultipartFile file){
         try {
@@ -106,32 +135,6 @@ public class MainController {
         try {
             // Call your service method to get the ByteArrayOutputStream
             InputStreamResource resource = fileService.extractCustomPatternsFromFile(file, pattern);
-
-            // Prepare headers to instruct browser to download the file
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
-            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            headers.add(HttpHeaders.PRAGMA, "no-cache");
-            headers.add(HttpHeaders.EXPIRES, "0");
-
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(resource);
-        } catch (Exception e) {
-            // Log the exception (adjust based on your logging framework)
-            System.out.println("An error occurred: " + e.getMessage());
-
-            // Return an internal server error response
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @PostMapping("/web/abstract")
-    ResponseEntity<InputStreamResource> handleUrlAbstractText(@RequestBody UrlDto dto){
-        try {
-            // Call your service method to get the ByteArrayOutputStream
-            InputStreamResource resource = fileService.extractViaPromptUrl(dto.getUrl(), dto.getInput());
 
             // Prepare headers to instruct browser to download the file
             HttpHeaders headers = new HttpHeaders();

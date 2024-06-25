@@ -1,6 +1,6 @@
 package com.tool.reg.exception;
 
-public class PdfGenerationException extends Exception{
+public class PdfGenerationException extends RuntimeException{
     public PdfGenerationException(String message) {
         super(message);
     }

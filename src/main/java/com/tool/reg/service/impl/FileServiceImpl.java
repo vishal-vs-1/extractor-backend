@@ -44,8 +44,20 @@ public class FileServiceImpl implements FileService {
         this.chatClient = chatClient;
     }
 
+    //Methods related to url
+
     @Override
-    public InputStreamResource extractCustomPatternsFromUrl(String url, String cPattern) throws TextExtractionException, MalformedURLException, NoDataException, PdfGenerationException {
+    public InputStreamResource extractEmailsFromUrl(String url) {
+
+        String text = extractTextFromURL(url);
+
+        return generatePdf(extractEmail(text));
+    }
+
+    @Override
+    public InputStreamResource extractCustomPatternsFromUrl(String url, String cPattern) {
+
+        System.out.println(cPattern);
 
         String text = extractTextFromURL(url);
 
@@ -55,55 +67,54 @@ public class FileServiceImpl implements FileService {
         while (matcher.find()) {
             matches.add(matcher.group());
         }
+        System.out.println(matches);
         if(matches.isEmpty()){
-            throw new NoDataException("No email present in provided URL");
+            throw new NoDataException("No text present which matches the regex");
         }
 
         return generatePdf(matches);
     }
 
     @Override
-    public InputStreamResource extractCustomPatternsFromFile(MultipartFile file, String cPattern) throws TextExtractionException, InvalidFileException, FileReadingException, IOException, NoDataException, PdfGenerationException {
-
-        String text = extractTextFromFile(file);
-
-        Set<String> matches = new HashSet<>();
-        Pattern pattern = Pattern.compile(cPattern);
-        Matcher matcher = pattern.matcher(text);
-        while (matcher.find()) {
-            matches.add(matcher.group());
-        }
-        if(matches.isEmpty()){
-            throw new NoDataException("No email present in provided URL");
-        }
-        return generatePdf(matches);
-    }
-
-    @Override
-    public InputStreamResource extractEmailsFromFile(MultipartFile file) throws TextExtractionException, InvalidFileException, FileReadingException, IOException, NoDataException, PdfGenerationException {
-
-        String text = extractTextFromFile(file);
-
-        return generatePdf(extractEmail(text));
-    }
-
-    @Override
-    public InputStreamResource extractEmailsFromUrl(String url) throws TextExtractionException, MalformedURLException, NoDataException, PdfGenerationException {
-
-        String text = extractTextFromURL(url);
-
-        return generatePdf(extractEmail(text));
-    }
-
-    @Override
-    public InputStreamResource extractViaPromptUrl(String url, String input) throws TextExtractionException, MalformedURLException, PdfGenerationException, NoDataException {
+    public InputStreamResource extractViaPromptUrl(String url, String input) {
 
         String pattern = createPatternWithPrompt(input);
         return extractCustomPatternsFromUrl(url, pattern);
     }
 
+
+
+
+
+    //Methods related to files
+
     @Override
-    public InputStreamResource extractViaPromptFile(MultipartFile file, String input) throws Exception {
+    public InputStreamResource extractEmailsFromFile(MultipartFile file) throws IOException{
+
+        String text = extractTextFromFile(file);
+
+        return generatePdf(extractEmail(text));
+    }
+
+    @Override
+    public InputStreamResource extractCustomPatternsFromFile(MultipartFile file, String cPattern) throws IOException{
+
+        String text = extractTextFromFile(file);
+
+        Set<String> matches = new HashSet<>();
+        Pattern pattern = Pattern.compile(cPattern);
+        Matcher matcher = pattern.matcher(text);
+        while (matcher.find()) {
+            matches.add(matcher.group());
+        }
+        if(matches.isEmpty()){
+            throw new NoDataException("No matches found");
+        }
+        return generatePdf(matches);
+    }
+
+    @Override
+    public InputStreamResource extractViaPromptFile(MultipartFile file, String input) throws IOException {
 
         String pattern = createPatternWithPrompt(input);
 
@@ -111,9 +122,9 @@ public class FileServiceImpl implements FileService {
     }
 
 
+    //private methods
 
-
-    private Set<String> extractEmail(String text) throws NoDataException {
+    private Set<String> extractEmail(String text){
 
         Set<String> matches = new HashSet<>();
 
@@ -133,12 +144,12 @@ public class FileServiceImpl implements FileService {
     //Unstable parser causes problems for some prompts
     private String createPatternWithPrompt(String input) {
 
-        String result = null;
+        String result;
 
         BeanOutputParser<GeneratedPattern> outputParser = new BeanOutputParser<>(GeneratedPattern.class);
         String message =
                 """
-                        Create a regular expression in java language for this - " {input} ".
+                        Create a regular expression for this - " {input} ".
                         {format}
                         """;
 
@@ -157,7 +168,7 @@ public class FileServiceImpl implements FileService {
 
     private String createPatternWithPromptManual(String input){
         String prompt = """
-                        Create a regular expression in java language for this input = 
+                        Create a regular expression for this input = 
                         %s
                         
                         Answer me in this format, regex = "regular expression here"
@@ -168,6 +179,8 @@ public class FileServiceImpl implements FileService {
 
         String result = chatClient.call(prompt);
 
+        System.out.println("gpt result" + result);
+
         Pattern pattern = Pattern.compile("\"([^\"]*)\"");
         Matcher matcher = pattern.matcher(result);
 
@@ -176,12 +189,14 @@ public class FileServiceImpl implements FileService {
             extractedRegex = matcher.group(1);
         }
 
+        System.out.println(extractedRegex);
+
         return extractedRegex;
     }
 
-    private InputStreamResource generatePdf(Set<String> extractedData) throws PdfGenerationException {
+    private InputStreamResource generatePdf(Set<String> extractedData){
 
-        ByteArrayOutputStream stream = null;
+        ByteArrayOutputStream stream ;
 
         try (PDDocument document = new PDDocument()) {
             PDPage page = new PDPage();
@@ -225,7 +240,7 @@ public class FileServiceImpl implements FileService {
         );
     }
 
-    private String extractTextFromFile(MultipartFile file) throws InvalidFileException, TextExtractionException, NoDataException, FileReadingException, IOException {
+    private String extractTextFromFile(MultipartFile file) throws IOException {
 
         boolean validated = this.validateFile(file);
         if (!validated)
@@ -244,14 +259,14 @@ public class FileServiceImpl implements FileService {
         return result;
     }
 
-    private String extractTextFromURL(String url) throws MalformedURLException, TextExtractionException, NoDataException {
+    private String extractTextFromURL(String url) {
         StringBuilder result = new StringBuilder();
         try {
             URL urlObj = new URL(url);
             URLConnection urlConnection = urlObj.openConnection();
             try (
                     var inputStream = new InputStreamReader(urlConnection.getInputStream());
-                    var bufferedReader = new BufferedReader(inputStream);
+                    var bufferedReader = new BufferedReader(inputStream)
             ) {
                 String line;
                 while ((line = bufferedReader.readLine()) != null) {
@@ -271,11 +286,11 @@ public class FileServiceImpl implements FileService {
         return resultStr;
     }
 
-    private String extractTextWordDocx(MultipartFile file) throws TextExtractionException, NoDataException {
-        String text = null;
+    private String extractTextWordDocx(MultipartFile file) {
+        String text;
         try (var inputStream = file.getInputStream();
              var document = new XWPFDocument(inputStream);
-             var extractor = new XWPFWordExtractor(document);) {
+             var extractor = new XWPFWordExtractor(document)) {
 
             text = extractor.getText();
         } catch (IOException ex) {
@@ -289,7 +304,7 @@ public class FileServiceImpl implements FileService {
         return text;
     }
 
-    private String extractTextTxt(MultipartFile file) throws TextExtractionException, NoDataException {
+    private String extractTextTxt(MultipartFile file) {
 
         StringBuilder result = new StringBuilder();
 
@@ -315,9 +330,9 @@ public class FileServiceImpl implements FileService {
         return resultStr;
     }
 
-    private String extractTextPdf(MultipartFile file) throws TextExtractionException, FileReadingException, NoDataException {
-        byte[] bytes = null;
-        String text = null;
+    private String extractTextPdf(MultipartFile file) {
+        byte[] bytes;
+        String text;
         try {
             bytes = file.getBytes();
         } catch (IOException ex) {
