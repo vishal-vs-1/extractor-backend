@@ -10,175 +10,139 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+
 @RestController
 public class MainController {
 
     private final FileService fileService;
 
-    MainController(FileService file){
+    MainController(FileService file) {
         fileService = file;
     }
 
     //Endpoints for url handling
 
     @PostMapping("/web/email")
-    ResponseEntity<InputStreamResource> handleUrlEmailExtract(@RequestBody UrlDto dto){
-        try {
-            // Call your service method to get the inputstreamresource
-            InputStreamResource resource = fileService.extractEmailsFromUrl(dto.getUrl());
+    ResponseEntity<InputStreamResource> handleUrlEmailExtract(@RequestBody UrlDto dto) {
 
-            // Prepare headers to instruct browser to download the file
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
-            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            headers.add(HttpHeaders.PRAGMA, "no-cache");
-            headers.add(HttpHeaders.EXPIRES, "0");
+        // Call your service method to get the inputstreamresource
+        InputStreamResource resource = fileService.extractEmailsFromUrl(dto.getUrl());
 
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(resource);
-        } catch (Exception e) {
-            // Log the exception (adjust based on your logging framework)
-            System.out.println("An error occurred: " + e.getMessage());
+        // Prepare headers to instruct browser to download the file
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
+        headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+        headers.add(HttpHeaders.PRAGMA, "no-cache");
+        headers.add(HttpHeaders.EXPIRES, "0");
 
-            // Return an internal server error response
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+
     }
 
     @PostMapping("/web/custom")
-    ResponseEntity<InputStreamResource> handleUrlCustomPatternExtract(@RequestBody UrlDto dto){
-        try {
-            // Call your service method to get the ByteArrayOutputStream
-            InputStreamResource resource =  fileService.extractCustomPatternsFromUrl(dto.getUrl(), dto.getInput());
+    ResponseEntity<InputStreamResource> handleUrlCustomPatternExtract(@RequestBody UrlDto dto) {
 
-            // Prepare headers to instruct browser to download the file
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
-            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            headers.add(HttpHeaders.PRAGMA, "no-cache");
-            headers.add(HttpHeaders.EXPIRES, "0");
+        // Call your service method to get the ByteArrayOutputStream
+        InputStreamResource resource = fileService.extractCustomPatternsFromUrl(dto.getUrl(), dto.getInput());
 
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(resource);
-        } catch (Exception e) {
-            // Log the exception (adjust based on your logging framework)
-            System.out.println("An error occurred: " + e.getMessage());
+        // Prepare headers to instruct browser to download the file
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
+        headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+        headers.add(HttpHeaders.PRAGMA, "no-cache");
+        headers.add(HttpHeaders.EXPIRES, "0");
 
-            // Return an internal server error response
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+
     }
 
     @PostMapping("/web/abstract")
-    ResponseEntity<InputStreamResource> handleUrlAbstractText(@RequestBody UrlDto dto){
-        try {
-            // Call your service method to get the ByteArrayOutputStream
-            InputStreamResource resource = fileService.extractViaPromptUrl(dto.getUrl(), dto.getInput());
+    ResponseEntity<InputStreamResource> handleUrlAbstractText(@RequestBody UrlDto dto) {
 
-            // Prepare headers to instruct browser to download the file
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
-            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            headers.add(HttpHeaders.PRAGMA, "no-cache");
-            headers.add(HttpHeaders.EXPIRES, "0");
+        // Call your service method to get the ByteArrayOutputStream
+        InputStreamResource resource = fileService.extractViaPromptUrl(dto.getUrl(), dto.getInput());
 
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(resource);
-        } catch (Exception e) {
-            // Log the exception (adjust based on your logging framework)
-            System.out.println("An error occurred: " + e.getMessage());
+        // Prepare headers to instruct browser to download the file
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
+        headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+        headers.add(HttpHeaders.PRAGMA, "no-cache");
+        headers.add(HttpHeaders.EXPIRES, "0");
 
-            // Return an internal server error response
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+
     }
 
-
-    
 
     //Endpoints for file handling
 
     @PostMapping("/file/email")
-    ResponseEntity<InputStreamResource> handleFileEmailExtract(@RequestBody MultipartFile file){
-        try {
-            // Call your service method to get the ByteArrayOutputStream
-            InputStreamResource resource = fileService.extractEmailsFromFile(file);
+    ResponseEntity<InputStreamResource> handleFileEmailExtract(@RequestBody MultipartFile file) throws IOException {
 
-            // Prepare headers to instruct browser to download the file
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
-            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            headers.add(HttpHeaders.PRAGMA, "no-cache");
-            headers.add(HttpHeaders.EXPIRES, "0");
+        // Call your service method to get the ByteArrayOutputStream
+        InputStreamResource resource = fileService.extractEmailsFromFile(file);
 
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(resource);
-        } catch (Exception e) {
-            // Log the exception (adjust based on your logging framework)
-            System.out.println("An error occurred: " + e.getMessage());
+        // Prepare headers to instruct browser to download the file
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
+        headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+        headers.add(HttpHeaders.PRAGMA, "no-cache");
+        headers.add(HttpHeaders.EXPIRES, "0");
 
-            // Return an internal server error response
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+
     }
 
     @PostMapping("/file/custom")
-    ResponseEntity<InputStreamResource> handleFileCustomPatternExtract(@RequestParam MultipartFile file ,@RequestParam String pattern){
-        try {
-            // Call your service method to get the ByteArrayOutputStream
-            InputStreamResource resource = fileService.extractCustomPatternsFromFile(file, pattern);
+    ResponseEntity<InputStreamResource> handleFileCustomPatternExtract(@RequestParam MultipartFile file, @RequestParam String pattern) throws IOException {
 
-            // Prepare headers to instruct browser to download the file
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
-            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            headers.add(HttpHeaders.PRAGMA, "no-cache");
-            headers.add(HttpHeaders.EXPIRES, "0");
+        // Call your service method to get the ByteArrayOutputStream
+        InputStreamResource resource = fileService.extractCustomPatternsFromFile(file, pattern);
 
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(resource);
-        } catch (Exception e) {
-            // Log the exception (adjust based on your logging framework)
-            System.out.println("An error occurred: " + e.getMessage());
+        // Prepare headers to instruct browser to download the file
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
+        headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+        headers.add(HttpHeaders.PRAGMA, "no-cache");
+        headers.add(HttpHeaders.EXPIRES, "0");
 
-            // Return an internal server error response
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
     }
 
+
     @PostMapping("/file/abstract")
-    ResponseEntity<InputStreamResource> handleFileAbstractText(@RequestParam MultipartFile file, @RequestParam String text){
-        try {
-            // Call your service method to get the ByteArrayOutputStream
-            InputStreamResource resource = fileService.extractViaPromptFile(file, text);
+    ResponseEntity<InputStreamResource> handleFileAbstractText(@RequestParam MultipartFile file, @RequestParam String text) throws IOException {
 
-            // Prepare headers to instruct browser to download the file
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
-            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            headers.add(HttpHeaders.PRAGMA, "no-cache");
-            headers.add(HttpHeaders.EXPIRES, "0");
+        // Call your service method to get the ByteArrayOutputStream
+        InputStreamResource resource = fileService.extractViaPromptFile(file, text);
 
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(resource);
-        } catch (Exception e) {
-            // Log the exception (adjust based on your logging framework)
-            System.out.println("An error occurred: " + e.getMessage());
+        // Prepare headers to instruct browser to download the file
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"emails.pdf\"");
+        headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+        headers.add(HttpHeaders.PRAGMA, "no-cache");
+        headers.add(HttpHeaders.EXPIRES, "0");
 
-            // Return an internal server error response
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+
     }
 }
